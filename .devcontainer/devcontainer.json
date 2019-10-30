@@ -1,5 +1,5 @@
 {
-	"name": "C++",
+	"name": "nebula",
 	"dockerFile": "Dockerfile",  // Not support HTTP
 
 	"runArgs": [
