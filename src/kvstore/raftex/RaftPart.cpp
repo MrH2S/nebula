@@ -26,6 +26,8 @@ DEFINE_uint32(raft_heartbeat_interval_secs, 5,
 
 DEFINE_uint64(raft_snapshot_timeout, 60 * 5, "Max seconds between two snapshot requests");
 
+DEFINE_bool(raft_nonleader_reading, false, "Enable nonleader reading");
+
 DEFINE_uint32(max_batch_size, 256, "The max number of logs in a batch");
 
 DEFINE_int32(wal_ttl, 86400, "Default wal ttl");
@@ -825,15 +827,22 @@ void RaftPart::processAppendLogResponses(
         LogID prevLogId,
         std::vector<std::shared_ptr<Host>> hosts) {
     // Make sure majority have succeeded
+    std::size_t numShouldSucc = 0;
     size_t numSucceeded = 0;
     for (auto& res : resps) {
-        if (!hosts[res.first]->isLearner()
-                && res.second.get_error_code() == cpp2::ErrorCode::SUCCEEDED) {
-            ++numSucceeded;
+        if (!hosts[res.first]->isLearner()) {
+            ++numShouldSucc;
+            if (res.second.get_error_code() == cpp2::ErrorCode::SUCCEEDED) {
+                ++numSucceeded;
+            }
         }
     }
 
-    if (numSucceeded >= quorum_) {
+    if (!FLAGS_raft_nonleader_reading) {
+        numShouldSucc = quorum_;
+    }
+
+    if (numSucceeded >= numShouldSucc) {
         // Majority have succeeded
         VLOG(2) << idStr_ << numSucceeded
                 << " hosts have accepted the logs";
