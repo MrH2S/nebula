@@ -1,20 +1,22 @@
 # Deploy Cluster
 
-This section provides an introduction to deploy `Nebula` cluster.
+This section provides an introduction to deploy `Nebula Graph` cluster.
 
-## Download and install package
+## Download and Install Package
 
-Currently, we have offered packages for `CentOS 7.5`, `CentOS 6.5`, `Ubuntu 1604` and `Ubuntu 1804`. You can download rpm or deb packages by click the [**Assets**](https://github.com/vesoft-inc/nebula/releases).
+Currently, we have offered packages for `CentOS 7.5`, `CentOS 6.5`, `Ubuntu 1604` and `Ubuntu 1804`. You can download rpm or deb packages by clicking the [**Assets**](https://github.com/vesoft-inc/nebula/releases).
+
+![image](https://user-images.githubusercontent.com/42762957/67747062-e0fe1e00-fa62-11e9-9640-008d2c82bae3.png)
 
 For `CentOS` :
 
-```sh
+```bash
 rpm -ivh nebula-{VERSION}.{SYSTEM_VERSION}.x86_64.rpm
 ```
 
 For `Ubuntu` :
 
-```sh
+```bash
 dpkg -i nebula-{VERSION}.{SYSTEM_VERSION}.amd64.deb
 ```
 
@@ -24,15 +26,15 @@ In order to enable multi copy Meta services, you should set the meta addresses s
 
 Use `data_path` to set `Meta` and `Storage`'s underlying storage directory.
 
-## StartUp Nebula Cluster
+## Start Up Nebula Graph Cluster
 
-Currently, we support `scripts/services.sh` to manage the nebula cluster.
+Currently, we use `scripts/services.sh` to manage the **Nebula Graph** cluster.
 
-You can `start`, `stop` and `restart` the cluster using this script.
+You can `start`, `stop` and `restart` the cluster with this script.
 
 It looks like the following command:
 
-```
+```bash
 scripts/services.sh <start|stop|restart|status|kill>
 ```
 
@@ -40,18 +42,18 @@ The metas, storages and graphs contain the host of themselves.
 
 ## Connect to Nebula Graph
 
-```sh
+```bash
 > bin/nebula -u=user -p=password --addr={graphd IP address} --port={graphd listening port}
 ```
 
-* -u is to set the user name, `user` is the default Nebula user account
+* -u is to set the user name, `user` is the default **Nebula Graph** user account
 * -p is to set password, `password` is the default password for account `user`
 * --addr is the graphd IP address
 * --port is the the graphd server port and the default value is `3699`
 
-Then you’re now ready to start using Nebula Graph.
+Then you’re now ready to start using **Nebula Graph**.
 
-## Config reference
+## Configuration Reference
 
 **Meta Service** supports the following config properties.
 
@@ -142,8 +144,8 @@ Property Name          | Default Value | Description
 
 Property Name            | Default Value | Description
 ------------------------ | ------------- | -----------
-`addr`                   | "127.0.0.1"   | Nebula daemon IP address
-`port`                   | 0             | Nebula daemon listening port.
+`addr`                   | "127.0.0.1"   | Nebula Graph daemon IP address
+`port`                   | 0             | Nebula Graph daemon listening port.
 `u`                      | ""            | Username used to authenticate.
 `p`                      | ""            | Password used to authenticate.
 `enable_history`         | false         | Whether to force saving the command history.

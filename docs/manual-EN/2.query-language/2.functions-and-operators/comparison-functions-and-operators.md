@@ -1,4 +1,4 @@
-# Comparison Functions And Operators
+# Comparison Functions and Operators
 
 | Name  | Description |
 |:----|:----:|
@@ -30,11 +30,7 @@ nebula> YIELD 'A' == 'a';
 --------------
 
 nebula> YIELD '2' == 2;
-============
-| ("2"==2) |
-============
-|false |
-------------
+[ERROR (-8)]: A string type can not be compared with a non-string type.
 ```
 
 * &gt;

@@ -15,7 +15,7 @@
 
 // [WAL]
 DEFINE_bool(rocksdb_disable_wal,
-            false,
+            true,
             "Whether to disable the WAL in rocksdb");
 
 // [DBOptions]
@@ -45,7 +45,7 @@ DEFINE_string(part_man_type,
  */
 
 // BlockBasedTable block_cache
-DEFINE_int64(rocksdb_block_cache, 4,
+DEFINE_int64(rocksdb_block_cache, 1024,
              "The default block cache size used in BlockBasedTable. The unit is MB");
 
 
@@ -101,6 +101,7 @@ bool loadOptionsMap(std::unordered_map<std::string, std::string> &map, const std
         return false;
     }
     conf.forEachItem([&map] (const std::string& key, const folly::dynamic& val) {
+        LOG(INFO) << "Emplace rocksdb option " << key << "=" << val.asString();
         map.emplace(key, val.asString());
     });
     return true;

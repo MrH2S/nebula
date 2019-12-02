@@ -1,21 +1,23 @@
 # SHOW 语法
 
-```sql
-SHOW {SPACES | TAGS | EDGES | HOSTS}
-SHOW VARIABLES [graph|meta|storage]
+```ngql
+SHOW {SPACES | TAGS | EDGES | HOSTS | PARTS}
+SHOW CONFIGS [graph|meta|storage]
 ```
 
-`SHOW SPACES` 列出 Nebula Graph 集群中的所有图空间。
+`SHOW SPACES` 列出 **Nebula Graph** 集群中的所有图空间。
 
 `SHOW TAGS` 和 `SHOW EDGES` 则返回当前图空间中被定义的 tag 和 edge type。
 
 `SHOW HOSTS` 列出元服务器注册的所有存储主机。
 
-更多关于 `SHOW VARIABLES [graph|meta|storage]` 的信息，variable syntax一节。
+`SHOW PARTS` 列出指定 SPACE 的 partition 信息。
+
+更多关于 `SHOW CONFIGS [graph|meta|storage]` 的信息，参见 [configs syntax](../../../3.build-develop-and-administration/3.deploy-and-administrations/server-administration/configuration-statements/configs-syntax.md)。
 
 ## 示例
 
-```SQL
+```ngql
 nebula> SHOW SPACES;
 ========
 | Name |
@@ -24,6 +26,34 @@ nebula> SHOW SPACES;
 --------
 
 nebula> USE test;
+nebula> SHOW PARTS;
+======================================================================================================
+| Partition ID | Leader            | Peers                                                   | Losts |
+======================================================================================================
+| 1            | 172.25.61.1:44600 | 172.25.61.1:44700, 172.25.61.1:44500, 172.25.61.1:44600 |       |
+------------------------------------------------------------------------------------------------------
+| 2            | 172.25.61.1:44600 | 172.25.61.1:44500, 172.25.61.1:44600, 172.25.61.1:44700 |       |
+------------------------------------------------------------------------------------------------------
+| 3            | 172.25.61.1:44600 | 172.25.61.1:44600, 172.25.61.1:44700, 172.25.61.1:44500 |       |
+------------------------------------------------------------------------------------------------------
+
 nebula> SHOW TAGS;
+=================
+| ID | Name     |
+=================
+| 2  | course   |
+-----------------
+| 3  | building |
+-----------------
+| 4  | student  |
+-----------------
+
 nebula> SHOW EDGES;
+===============
+| ID | Name   |
+===============
+| 5  | follow |
+---------------
+| 6  | choose |
+---------------
 ```

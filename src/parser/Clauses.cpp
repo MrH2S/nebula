@@ -119,6 +119,7 @@ std::string ToClause::toString() const {
 
 Status OverClause::prepare(Over &over) const {
     over.edges_ = edges();
+    over.isReversely_ = isReversely_;
     return Status::OK();
 }
 
@@ -130,9 +131,7 @@ std::string OverEdge::toString() const {
         buf += " AS ";
         buf += *alias_;
     }
-    if (isReversely_) {
-        buf += " REVERSELY";
-    }
+
     return buf;
 }
 
@@ -143,6 +142,11 @@ std::string OverEdges::toString() const {
         buf += e->toString();
         buf += ",";
     }
+    buf.pop_back();
+
+    if (!buf.empty()) {
+        buf.resize(buf.size() - 1);
+    }
 
     return buf;
 }
@@ -152,6 +156,10 @@ std::string OverClause::toString() const {
     buf.reserve(256);
     buf += "OVER ";
     buf += overEdges_->toString();
+
+    if (isReversely()) {
+        buf += " REVERSELY";
+    }
 
     return buf;
 }
@@ -169,12 +177,26 @@ std::string WhereClause::toString() const {
     return buf;
 }
 
+std::string YieldColumn::toString() const {
+    std::string buf;
+    buf.reserve(256);
+    if (funName_ != nullptr) {
+        buf += *funName_;
+        buf += "(";
+        buf += expr_->toString();
+        buf += ")";
+    } else {
+        buf += expr_->toString();
+    }
+
+    return buf;
+}
+
 std::string YieldColumns::toString() const {
     std::string buf;
     buf.reserve(256);
     for (auto &col : columns_) {
-        auto *expr = col->expr();
-        buf += expr->toString();
+        buf += col->toString();
         if (col->alias() != nullptr) {
             buf += " AS ";
             buf += *col->alias();
@@ -197,4 +219,9 @@ std::string YieldClause::toString() const {
     buf += yieldColumns_->toString();
     return buf;
 }
+
+std::string GroupClause::toString() const {
+    return groupColumns_->toString();
+}
+
 }   // namespace nebula

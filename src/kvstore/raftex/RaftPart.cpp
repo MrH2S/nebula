@@ -29,9 +29,9 @@ DEFINE_uint64(raft_snapshot_timeout, 60 * 5, "Max seconds between two snapshot r
 DEFINE_uint32(max_batch_size, 256, "The max number of logs in a batch");
 
 DEFINE_int32(wal_ttl, 86400, "Default wal ttl");
-DEFINE_int64(wal_file_size, 128 * 1024 * 1024, "Default wal file size");
+DEFINE_int64(wal_file_size, 16 * 1024 * 1024, "Default wal file size");
 DEFINE_int32(wal_buffer_size, 8 * 1024 * 1024, "Default wal buffer size");
-DEFINE_int32(wal_buffer_num, 4, "Default wal buffer number");
+DEFINE_int32(wal_buffer_num, 2, "Default wal buffer number");
 
 
 namespace nebula {
@@ -782,8 +782,8 @@ void RaftPart::replicateLogs(folly::EventBase* eb,
             return resp.get_error_code() == cpp2::ErrorCode::SUCCEEDED
                     && !hosts[index]->isLearner();
         })
-        .then(executor_.get(),
-                  [self = shared_from_this(),
+        .via(executor_.get())
+            .then([self = shared_from_this(),
                    eb,
                    it = std::move(iter),
                    currTerm,
@@ -1197,6 +1197,9 @@ void RaftPart::cleanupSnapshot() {
 
 bool RaftPart::needToCleanWal() {
     std::lock_guard<std::mutex> g(raftLock_);
+    if (status_ == Status::WAITING_SNAPSHOT) {
+        return false;
+    }
     for (auto& host : hosts_) {
         if (host->sendingSnapshot_) {
             return false;
@@ -1377,7 +1380,8 @@ void RaftPart::processAppendLogRequest(
     lastMsgRecvDur_.reset();
 
     if (req.get_sending_snapshot() && status_ != Status::WAITING_SNAPSHOT) {
-        LOG(INFO) << idStr_ << "Begin to wait for the snapshot";
+        LOG(INFO) << idStr_ << "Begin to wait for the snapshot"
+                  << " " << req.get_committed_log_id();
         reset();
         status_ = Status::WAITING_SNAPSHOT;
         resp.set_error_code(cpp2::ErrorCode::E_WAITING_SNAPSHOT);
@@ -1709,6 +1713,7 @@ void RaftPart::reset() {
 
 AppendLogResult RaftPart::isCatchedUp(const HostAddr& peer) {
     std::lock_guard<std::mutex> lck(logsLock_);
+    LOG(INFO) << idStr_ << "Check whether I catch up";
     if (role_ != Role::LEADER) {
         LOG(INFO) << idStr_ << "I am not the leader";
         return AppendLogResult::E_NOT_A_LEADER;
@@ -1719,11 +1724,23 @@ AppendLogResult RaftPart::isCatchedUp(const HostAddr& peer) {
     }
     for (auto& host : hosts_) {
         if (host->addr_ == peer) {
+            if (host->followerCommittedLogId_ < wal_->firstLogId()) {
+                LOG(INFO) << idStr_ << "The committed log id of peer is "
+                          << host->followerCommittedLogId_
+                          << ", which is invalid or less than my first wal log id";
+                return AppendLogResult::E_SENDING_SNAPSHOT;
+            }
             return host->sendingSnapshot_ ? AppendLogResult::E_SENDING_SNAPSHOT
                                           : AppendLogResult::SUCCEEDED;
         }
     }
     return AppendLogResult::E_INVALID_PEER;
+}
+
+bool RaftPart::linkCurrentWAL(const char* newPath) {
+    CHECK_NOTNULL(newPath);
+    std::lock_guard<std::mutex> g(raftLock_);
+    return wal_->linkCurrentWAL(newPath);
 }
 
 }  // namespace raftex

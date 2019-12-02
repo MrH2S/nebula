@@ -18,6 +18,7 @@
 #include "thrift/ThriftClientManager.h"
 #include "meta/SchemaProviderIf.h"
 #include "meta/GflagsManager.h"
+#include "stats/Stats.h"
 
 DECLARE_int32(meta_client_retry_times);
 
@@ -97,6 +98,10 @@ class MetaClient {
     FRIEND_TEST(ConfigManTest, MetaConfigManTest);
     FRIEND_TEST(ConfigManTest, MockConfigTest);
     FRIEND_TEST(ConfigManTest, RocksdbOptionsTest);
+    FRIEND_TEST(MetaClientTest, SimpleTest);
+    FRIEND_TEST(MetaClientTest, RetryWithExceptionTest);
+    FRIEND_TEST(MetaClientTest, RetryOnceTest);
+    FRIEND_TEST(MetaClientTest, RetryUntilLimitTest);
     FRIEND_TEST(MetaClientTest, RocksdbOptionsTest);
 
 public:
@@ -104,7 +109,9 @@ public:
                         std::vector<HostAddr> addrs,
                         HostAddr localHost = HostAddr(0, 0),
                         ClusterID clusterId = 0,
-                        bool sendHeartBeat = false);
+                        bool sendHeartBeat = false,
+                        stats::Stats *stats = nullptr);
+
 
     virtual ~MetaClient();
 
@@ -141,14 +148,11 @@ public:
     folly::Future<StatusOr<bool>>
     dropSpace(std::string name);
 
-    folly::Future<StatusOr<bool>>
-    addHosts(const std::vector<HostAddr>& hosts);
-
     folly::Future<StatusOr<std::vector<cpp2::HostItem>>>
     listHosts();
 
-    folly::Future<StatusOr<bool>>
-    removeHosts(const std::vector<HostAddr>& hosts);
+    folly::Future<StatusOr<std::vector<cpp2::PartItem>>>
+    listParts(GraphSpaceID spaceId);
 
     folly::Future<StatusOr<PartsAlloc>>
     getPartsAlloc(GraphSpaceID spaceId);
@@ -214,7 +218,7 @@ public:
 
     // Operations for admin
     folly::Future<StatusOr<int64_t>>
-    balance();
+    balance(std::vector<HostAddr> hostDel, bool isStop = false);
 
     folly::Future<StatusOr<std::vector<cpp2::BalanceTask>>>
     showBalance(int64_t balanceId);
@@ -254,7 +258,7 @@ public:
 
     PartsMap getPartsMapFromCache(const HostAddr& host);
 
-    PartMeta getPartMetaFromCache(GraphSpaceID spaceId, PartitionID partId);
+    StatusOr<PartMeta> getPartMetaFromCache(GraphSpaceID spaceId, PartitionID partId);
 
     bool checkPartExistInCache(const HostAddr& host,
                                GraphSpaceID spaceId,
@@ -263,7 +267,7 @@ public:
     bool checkSpaceExistInCache(const HostAddr& host,
                                 GraphSpaceID spaceId);
 
-    int32_t partsNum(GraphSpaceID spaceId);
+    StatusOr<int32_t> partsNum(GraphSpaceID spaceId);
 
     StatusOr<std::shared_ptr<const SchemaProviderIf>>
     getTagSchemaFromCache(GraphSpaceID spaceId, TagID tagID, SchemaVer ver = -1);
@@ -272,6 +276,14 @@ public:
     getEdgeSchemaFromCache(GraphSpaceID spaceId, EdgeType edgeType, SchemaVer ver = -1);
 
     const std::vector<HostAddr>& getAddresses();
+
+    folly::Future<StatusOr<std::string>> getTagDefaultValue(GraphSpaceID spaceId,
+                                                            TagID tagId,
+                                                            const std::string& field);
+
+    folly::Future<StatusOr<std::string>> getEdgeDefaultValue(GraphSpaceID spaceId,
+                                                             EdgeType edgeType,
+                                                             const std::string& field);
 
     Status refreshCache();
 
@@ -378,6 +390,7 @@ private:
     cpp2::ConfigModule    gflagsModule_{cpp2::ConfigModule::UNKNOWN};
     std::atomic_bool      configReady_{false};
     std::vector<cpp2::ConfigItem> gflagsDeclared_;
+    stats::Stats         *stats_{nullptr};
 };
 
 }  // namespace meta
