@@ -97,4 +97,19 @@ struct Pair {
     2: string value,
 }
 
+struct TracingContext {
+    // Text format context record traceId, spanId and bagages etc.
+    1: map<string, string> headers,  
+}
+
+struct Tracing {
+    1: TracingContext parent;
+//    2: optional TracingContext follow;
+}
+
+// Record the data not for the work
+struct Meta {
+    1: optional Tracing trace,
+}
+
 const ValueType kInvalidValueType = {"type" : UNKNOWN}
