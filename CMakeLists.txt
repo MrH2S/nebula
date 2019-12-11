@@ -191,6 +191,7 @@ if(NOT ENABLE_ASAN AND NOT ENABLE_NATIVE)
     find_package(PCHSupport)
     add_compile_options(-Winvalid-pch)
 endif()
+find_package(Jaejer REQUIRED)
 
 add_compile_options(-Wall)
 add_compile_options(-Werror)

@@ -18,6 +18,7 @@
 #include "graph/GraphHttpHandler.h"
 #include "graph/GraphFlags.h"
 #include "webservice/WebService.h"
+#include <jaegertracing/Tracer.h>
 
 using nebula::Status;
 using nebula::ProcessUtils;
