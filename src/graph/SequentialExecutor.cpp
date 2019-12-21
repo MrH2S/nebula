@@ -20,19 +20,48 @@ SequentialExecutor::SequentialExecutor(SequentialSentences *sentences,
 
 
 Status SequentialExecutor::prepare() {
-    for (auto i = 0U; i < sentences_->sentences_.size(); i++) {
-        auto *sentence = sentences_->sentences_[i].get();
-        auto executor = makeExecutor(sentence);
-        if (executor == nullptr) {
-            return Status::Error("The statement has not been implemented");
-        }
-        auto status = executor->prepare();
-        if (!status.ok()) {
-            FLOG_ERROR("Prepare executor `%s' failed: %s",
-                        executor->name(), status.toString().c_str());
-            return status;
-        }
-        executors_.emplace_back(std::move(executor));
+    const std::size_t numExecutor = sentences_->sentences_.size();
+    executors_.resize(numExecutor);
+    std::vector<folly::SemiFuture<Status>> fResult;
+    fResult.reserve(numExecutor);
+    for (auto i = 0U; i < numExecutor; ++i) {
+        folly::Promise<Status> p;
+        fResult.emplace_back(std::move(p.getSemiFuture()));
+        auto task = [this, i, p = std::move(p)]() mutable {
+            auto *sentence = sentences_->sentences_[i].get();
+            auto executor = makeExecutor(sentence);
+            if (executor == nullptr) {
+                constexpr char err[] = "The statement has not been implemented";
+                LOG(ERROR) << err;
+                p.setValue(Status::Error(err));
+                return;
+            }
+            auto status = executor->prepare();
+            if (!status.ok()) {
+                FLOG_ERROR("Prepare executor `%s' failed: %s",
+                            executor->name(), status.toString().c_str());
+                p.setValue(std::move(status));
+                return;
+            }
+            executors_[i] = std::move(executor);
+            p.setValue(Status::OK());
+        };
+        ectx()->rctx()->runner()->add(std::move(task));
+    }
+    auto prepareStatus = folly::collect(fResult).via(ectx()->rctx()->runner())
+        .thenValue([](auto&& results) {
+            for (auto r : results) {
+                if (!r.ok()) {
+                    return std::move(r);
+                }
+            }
+            return Status::OK();
+        }).thenError([](auto&& e) {
+            LOG(ERROR) << e.what();
+            return Status::Error(e.what());
+        }).get();
+    if (!prepareStatus.ok()) {
+        return prepareStatus;
     }
     /**
      * For the time being, we execute sentences one by one. We may allow concurrent
