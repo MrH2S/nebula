@@ -36,9 +36,10 @@ Status SequentialExecutor::prepare() {
                 p.setValue(Status::Error(err));
                 return;
             }
-            // Run prepare concurrently here with protection
-            // So make sure the prepare not modify the shared states I.E. Storage
-            // In fact, the prepare is used to initialize the members aacording to sentence
+            // Run prepare concurrently here without protection.
+            // So make sure the prepare not access(R/W) the shared states I.E. Storage.
+            // In fact, the prepare is used to initialize the members aacording to sentence,
+            // there's no race condition inter sentences.
             auto status = executor->prepare();
             if (!status.ok()) {
                 FLOG_ERROR("Prepare executor `%s' failed: %s",
