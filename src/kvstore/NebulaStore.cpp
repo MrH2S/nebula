@@ -610,6 +610,7 @@ ResultCode NebulaStore::compact(GraphSpaceID spaceId) {
     // return code;
 
     std::vector<folly::Future<ResultCode>> fResults;
+    fResults.reserve(space->engines_.size());
     for (auto& engine : space->engines_) {
         folly::Promise<ResultCode> p;
         fResults.emplace_back(p.getFuture());
