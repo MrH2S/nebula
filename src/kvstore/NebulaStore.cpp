@@ -581,13 +581,56 @@ ResultCode NebulaStore::compact(GraphSpaceID spaceId) {
         return error(spaceRet);
     }
     auto space = nebula::value(spaceRet);
+    LOG(ERROR) << "Debug Point: compact " << space->engines_.size() << " db";
+    time::Duration d;
+
+    // for (auto& engine : space->engines_) {
+        // auto code = engine->compact();
+        // if (code != ResultCode::SUCCEEDED) {
+            // return code;
+        // }
+    // }
+    // LOG(ERROR) << "Debug Point: compact time consumption: " << d.elapsedInMSec() << "MS";
+    // return ResultCode::SUCCEEDED;
+
+    // auto code = ResultCode::SUCCEEDED;
+    // std::vector<std::thread> threads;
+    // for (auto& engine : space->engines_) {
+        // threads.emplace_back([&engine, &code]() {
+            // auto ret = engine->compact();
+            // if (ret != ResultCode::SUCCEEDED) {
+                // code = ret;
+            // }
+        // });
+    // }
+    // for (auto &t : threads) {
+        // t.join();
+    // }
+    // LOG(ERROR) << "Debug Point: compact time consumption: " << d.elapsedInMSec() << "MS";
+    // return code;
+
+    std::vector<folly::Future<ResultCode>> fResults;
     for (auto& engine : space->engines_) {
-        auto code = engine->compact();
-        if (code != ResultCode::SUCCEEDED) {
-            return code;
-        }
+        folly::Promise<ResultCode> p;
+        fResults.emplace_back(p.getFuture());
+        auto task = [p = std::move(p), &engine] () mutable {
+            p.setValue(engine->compact());
+        };
+        workers_->add(std::move(task));
     }
-    return ResultCode::SUCCEEDED;
+    auto ret = folly::collect(fResults).thenValue([](auto&& results) {
+        for (auto r : results) {
+            if (r != ResultCode::SUCCEEDED) {
+                return r;
+            }
+        }
+        return ResultCode::SUCCEEDED;
+    }).thenError([](auto&& e) {
+        LOG(ERROR) << e.what();
+        return ResultCode::ERR_UNKNOWN;
+    }).get();
+    LOG(ERROR) << "Debug Point: compact time consumption: " << d.elapsedInMSec() << "MS";
+    return ret;
 }
 
 ResultCode NebulaStore::flush(GraphSpaceID spaceId) {

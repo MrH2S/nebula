@@ -404,8 +404,10 @@ ResultCode RocksEngine::setDBOption(const std::string& configKey,
 
 
 ResultCode RocksEngine::compact() {
+    time::Duration d;
     rocksdb::CompactRangeOptions options;
     rocksdb::Status status = db_->CompactRange(options, nullptr, nullptr);
+    LOG(ERROR) << "Debug Point: compact consumption time : " << d.elapsedInMSec() << "MS";
     if (status.ok()) {
         return ResultCode::SUCCEEDED;
     } else {
