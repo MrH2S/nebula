@@ -65,7 +65,7 @@ private:
 private:
     std::unique_ptr<rocksdb::DB>                                   db_;
     rocksdb::Options                                               options_;
-    std::unique_ptr<meta::MetaClient>                              metaClient_;
+    std::shared_ptr<meta::MetaClient>                              metaClient_;
     std::unique_ptr<meta::ServerBasedSchemaManager>                schemaMng_;
     GraphSpaceID                                                   spaceId_;
     int32_t                                                        partNum_;

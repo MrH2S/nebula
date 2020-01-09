@@ -45,7 +45,7 @@ TEST(BalanceIntegrationTest, BalanceTest) {
     std::vector<HostAddr> metaAddr = {HostAddr(localIp, localMetaPort)};
 
     LOG(INFO) << "Create meta client...";
-    auto mClient = std::make_unique<meta::MetaClient>(threadPool,
+    auto mClient = meta::MetaClient::make_shared(threadPool,
                                                       metaAddr);
 
     mClient->waitForMetadReady();
@@ -69,7 +69,7 @@ TEST(BalanceIntegrationTest, BalanceTest) {
         options.localHost_ = storageAddr;
         options.clusterId_ = kClusterId;
         options.inStoraged_ = true;
-        auto metaClient = std::make_shared<meta::MetaClient>(threadPool,
+        auto metaClient = meta::MetaClient::make_shared(threadPool,
                                                              metaAddr,
                                                              options);
         metaClient->waitForMetadReady();
@@ -170,7 +170,7 @@ TEST(BalanceIntegrationTest, BalanceTest) {
     }
     LOG(INFO) << "Let's open a new storage service";
     std::unique_ptr<test::ServerContext> newServer;
-    std::unique_ptr<meta::MetaClient> newMetaClient;
+    std::shared_ptr<meta::MetaClient> newMetaClient;
     uint32_t storagePort = network::NetworkUtils::getAvailablePort();
     HostAddr storageAddr(localIp, storagePort);
     {
@@ -178,7 +178,7 @@ TEST(BalanceIntegrationTest, BalanceTest) {
         options.localHost_ = storageAddr;
         options.clusterId_ = kClusterId;
         options.inStoraged_ = true;
-        newMetaClient = std::make_unique<meta::MetaClient>(threadPool,
+        newMetaClient = meta::MetaClient::make_shared(threadPool,
                                                            metaAddr,
                                                            options);
         newMetaClient->waitForMetadReady();
@@ -274,7 +274,7 @@ TEST(BalanceIntegrationTest, LeaderBalanceTest) {
     std::vector<HostAddr> metaAddr = {HostAddr(localIp, localMetaPort)};
 
     LOG(INFO) << "Create meta client...";
-    auto mClient = std::make_unique<meta::MetaClient>(threadPool,
+    auto mClient = meta::MetaClient::make_shared(threadPool,
                                                       metaAddr);
 
     mClient->waitForMetadReady();
@@ -297,7 +297,7 @@ TEST(BalanceIntegrationTest, LeaderBalanceTest) {
         options.localHost_ = storageAddr;
         options.clusterId_ = kClusterId;
         options.inStoraged_ = true;
-        auto metaClient = std::make_shared<meta::MetaClient>(threadPool,
+        auto metaClient = meta::MetaClient::make_shared(threadPool,
                                                              metaAddr,
                                                              options);
         metaClient->waitForMetadReady();

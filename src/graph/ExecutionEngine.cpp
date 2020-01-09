@@ -33,7 +33,7 @@ Status ExecutionEngine::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExec
     meta::MetaClientOptions options;
     options.serviceName_ = "graph";
     options.skipConfig_ = FLAGS_local_config;
-    metaClient_ = std::make_unique<meta::MetaClient>(ioExecutor,
+    metaClient_ = meta::MetaClient::make_shared(ioExecutor,
                                                      std::move(addrs.value()),
                                                      options);
     // load data try 3 time

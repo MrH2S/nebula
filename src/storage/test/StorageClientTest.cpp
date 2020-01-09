@@ -51,7 +51,7 @@ TEST(StorageClientTest, VerticesInterfacesTest) {
     options.localHost_ = localHost;
     options.clusterId_ = kClusterId;
     options.inStoraged_ = true;
-    auto mClient = std::make_unique<meta::MetaClient>(threadPool,
+    auto mClient = meta::MetaClient::make_shared(threadPool,
                                                       std::move(addrs),
                                                       options);
     LOG(INFO) << "Add hosts automatically and create space....";

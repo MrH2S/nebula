@@ -52,7 +52,7 @@ void TestEnv::SetUp() {
     options.localHost_ = localhost;
     options.clusterId_ = kClusterId;
     options.inStoraged_ = true;
-    mClient_ = std::make_unique<meta::MetaClient>(threadPool,
+    mClient_ = meta::MetaClient::make_shared(threadPool,
                                                   std::move(addrsRet.value()),
                                                   options);
     mClient_->waitForMetadReady();

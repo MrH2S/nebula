@@ -124,7 +124,7 @@ struct MetaClientOptions {
     bool skipConfig_ = false;
 };
 
-class MetaClient {
+class MetaClient : public std::enable_shared_from_this<MetaClient> {
     FRIEND_TEST(ConfigManTest, MetaConfigManTest);
     FRIEND_TEST(ConfigManTest, MockConfigTest);
     FRIEND_TEST(ConfigManTest, RocksdbOptionsTest);
@@ -135,9 +135,17 @@ class MetaClient {
     FRIEND_TEST(MetaClientTest, RocksdbOptionsTest);
 
 public:
-    MetaClient(std::shared_ptr<folly::IOThreadPoolExecutor> ioThreadPool,
-               std::vector<HostAddr> addrs,
-               const MetaClientOptions& options = MetaClientOptions());
+    // Enable only shared for manage lifetime in ASYNC process
+    // \WARNING For the shared_from_this is U.B. when call by the non shared object before c++17
+    //          We couldn't handle this before c++17, so limit create a non shared object
+    // TODO(shylock) if c++17 enabled
+    MetaClient() = delete;
+    static std::shared_ptr<MetaClient> make_shared(
+        std::shared_ptr<folly::IOThreadPoolExecutor> ioThreadPool,
+        std::vector<HostAddr> addrs,
+        const MetaClientOptions& options = MetaClientOptions()) {
+            return std::shared_ptr<MetaClient>(new MetaClient(ioThreadPool, addrs, options));
+        }
 
     virtual ~MetaClient();
 
@@ -467,6 +475,10 @@ protected:
                            const LocalCache& localCache);
 
 private:
+    MetaClient(std::shared_ptr<folly::IOThreadPoolExecutor> ioThreadPool,
+               std::vector<HostAddr> addrs,
+               const MetaClientOptions& options = MetaClientOptions());
+
     std::shared_ptr<folly::IOThreadPoolExecutor> ioThreadPool_;
     std::shared_ptr<thrift::ThriftClientManager<meta::cpp2::MetaServiceAsyncClient>> clientsMan_;
 

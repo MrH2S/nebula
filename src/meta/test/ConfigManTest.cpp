@@ -275,7 +275,7 @@ TEST(ConfigManTest, MetaConfigManTest) {
     network::NetworkUtils::ipv4ToInt("127.0.0.1", localIp);
 
     auto module = cpp2::ConfigModule::STORAGE;
-    auto client = std::make_shared<MetaClient>(threadPool,
+    auto client = MetaClient::make_shared(threadPool,
         std::vector<HostAddr>{HostAddr(localIp, sc->port_)});
     client->waitForMetadReady();
     client->gflagsModule_ = module;
@@ -473,7 +473,7 @@ TEST(ConfigManTest, MockConfigTest) {
     auto type = cpp2::ConfigType::STRING;
     auto mode = cpp2::ConfigMode::MUTABLE;
 
-    auto client = std::make_shared<MetaClient>(threadPool,
+    auto client = MetaClient::make_shared(threadPool,
         std::vector<HostAddr>{HostAddr(localIp, sc->port_)});
     client->waitForMetadReady();
     client->gflagsModule_ = module;
@@ -487,7 +487,7 @@ TEST(ConfigManTest, MockConfigTest) {
     }
     clientCfgMan.registerGflags(configItems);
 
-    auto consoleClient = std::make_shared<MetaClient>(threadPool,
+    auto consoleClient = MetaClient::make_shared(threadPool,
         std::vector<HostAddr>{HostAddr(localIp, sc->port_)});
     consoleClient->waitForMetadReady();
     ClientBasedGflagsManager console(consoleClient.get());
@@ -546,7 +546,7 @@ TEST(ConfigManTest, RocksdbOptionsTest) {
     options.clusterId_ = kClusterId;
     options.inStoraged_ = true;
     options.skipConfig_ = false;
-    auto mClient = std::make_unique<meta::MetaClient>(threadPool,
+    auto mClient = meta::MetaClient::make_shared(threadPool,
                                                       metaAddr,
                                                       options);
     mClient->waitForMetadReady();

@@ -95,7 +95,7 @@ bool StorageServer::start() {
     options.inStoraged_ = true;
     options.serviceName_ = "";
     options.skipConfig_ = FLAGS_local_config;
-    metaClient_ = std::make_unique<meta::MetaClient>(ioThreadPool_,
+    metaClient_ = meta::MetaClient::make_shared(ioThreadPool_,
                                                      metaAddrs_,
                                                      options);
     if (!metaClient_->waitForMetadReady()) {

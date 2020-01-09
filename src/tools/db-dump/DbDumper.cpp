@@ -56,7 +56,7 @@ Status DbDumper::initMeta() {
     auto ioExecutor = std::make_shared<folly::IOThreadPoolExecutor>(1);
     meta::MetaClientOptions options;
     options.skipConfig_ = true;
-    metaClient_ = std::make_unique<meta::MetaClient>(ioExecutor,
+    metaClient_ = meta::MetaClient::make_shared(ioExecutor,
                                                      std::move(addrs.value()),
                                                      options);
     if (!metaClient_->waitForMetadReady(1)) {

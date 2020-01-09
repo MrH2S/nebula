@@ -51,7 +51,7 @@ private:
     std::shared_ptr<apache::thrift::concurrency::ThreadManager> workers_;
 
     std::unique_ptr<apache::thrift::ThriftServer> tfServer_;
-    std::unique_ptr<meta::MetaClient> metaClient_;
+    std::shared_ptr<meta::MetaClient> metaClient_;
     std::unique_ptr<kvstore::KVStore> kvstore_;
 
     std::unique_ptr<nebula::hdfs::HdfsHelper> hdfsHelper_;

@@ -32,7 +32,7 @@ public:
                                                                         std::move(threadFactory));
         meta::MetaClientOptions options;
         options.skipConfig_ = true;
-        metaClient_ = std::make_unique<nebula::meta::MetaClient>(ioExecutor,
+        metaClient_ = meta::MetaClient::make_shared(ioExecutor,
                                                                  std::move(addrs.value()),
                                                                  options);
 
@@ -131,7 +131,7 @@ public:
 
 private:
     std::unique_ptr<nebula::storage::StorageClient> storageClient_;
-    std::unique_ptr<nebula::meta::MetaClient> metaClient_;
+    std::shared_ptr<nebula::meta::MetaClient> metaClient_;
     nebula::GraphSpaceID space_;
 };
 

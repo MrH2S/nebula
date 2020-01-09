@@ -77,7 +77,7 @@ public:
 
         meta::MetaClientOptions options;
         options.skipConfig_ = true;
-        mClient_ = std::make_unique<meta::MetaClient>(threadPool_, metaAddrsRet.value(), options);
+        mClient_ = meta::MetaClient::make_shared(threadPool_, metaAddrsRet.value(), options);
         CHECK(mClient_->waitForMetadReady());
 
         auto spaceResult = mClient_->getSpaceIdByNameFromCache(FLAGS_space_name);
@@ -286,7 +286,7 @@ private:
 private:
     std::atomic_long finishedRequests_{0};
     std::unique_ptr<StorageClient> client_;
-    std::unique_ptr<meta::MetaClient> mClient_;
+    std::shared_ptr<meta::MetaClient> mClient_;
     std::shared_ptr<folly::IOThreadPoolExecutor> threadPool_;
     GraphSpaceID spaceId_;
     TagID tagId_;

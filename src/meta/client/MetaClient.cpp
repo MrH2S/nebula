@@ -94,7 +94,9 @@ bool MetaClient::waitForMetadReady(int count, int retryIntervalSecs) {
     CHECK(bgThread_->start());
     LOG(INFO) << "Register time task for heartbeat!";
     size_t delayMS = FLAGS_heartbeat_interval_secs * 1000 + folly::Random::rand32(900);
-    bgThread_->addDelayTask(delayMS, &MetaClient::heartBeatThreadFunc, this);
+    bgThread_->addDelayTask(delayMS, [self = shared_from_this()]() {
+        self->heartBeatThreadFunc();
+    });
     return ready_;
 }
 
@@ -108,10 +110,12 @@ void MetaClient::stop() {
 }
 
 void MetaClient::heartBeatThreadFunc() {
+    auto self = shared_from_this();
     SCOPE_EXIT {
         bgThread_->addDelayTask(FLAGS_heartbeat_interval_secs * 1000,
-                                &MetaClient::heartBeatThreadFunc,
-                                this);
+                                [self]() {
+                                    self->heartBeatThreadFunc();
+                                });
     };
     auto ret = heartbeat().get();
     if (!ret.ok()) {
@@ -340,25 +344,25 @@ void MetaClient::getResponse(Request req,
     }
     folly::via(evb, [host, evb, req = std::move(req), remoteFunc = std::move(remoteFunc),
                      respGen = std::move(respGen), pro = std::move(pro),
-                     toLeader, retry, retryLimit, duration, this] () mutable {
-        auto client = clientsMan_->client(host, evb, false, FLAGS_meta_client_timeout_ms);
+                     toLeader, retry, retryLimit, duration, self = shared_from_this()] () mutable {
+        auto client = self->clientsMan_->client(host, evb, false, FLAGS_meta_client_timeout_ms);
         VLOG(1) << "Send request to meta " << host;
         remoteFunc(client, req).via(evb)
             .then([host, req = std::move(req), remoteFunc = std::move(remoteFunc),
                    respGen = std::move(respGen), pro = std::move(pro), toLeader, retry,
-                   retryLimit, evb, duration, this] (folly::Try<RpcResponse>&& t) mutable {
+                   retryLimit, evb, duration, self] (folly::Try<RpcResponse>&& t) mutable {
             // exception occurred during RPC
             if (t.hasException()) {
                 if (toLeader) {
-                    updateLeader();
+                    self->updateLeader();
                 } else {
-                    updateActive();
+                    self->updateActive();
                 }
                 if (retry < retryLimit) {
                     evb->runAfterDelay([req = std::move(req), remoteFunc = std::move(remoteFunc),
                                         respGen = std::move(respGen), pro = std::move(pro),
-                                        toLeader, retry, retryLimit, this] () mutable {
-                        getResponse(std::move(req),
+                                        toLeader, retry, retryLimit, self] () mutable {
+                        self->getResponse(std::move(req),
                                     std::move(remoteFunc),
                                     std::move(respGen),
                                     std::move(pro),
@@ -371,7 +375,8 @@ void MetaClient::getResponse(Request req,
                     LOG(ERROR) << "Send request to " << host << ", exceed retry limit";
                     pro.setValue(Status::Error(folly::stringPrintf("RPC failure in MetaClient: %s",
                                                                    t.exception().what().c_str())));
-                    stats::Stats::addStatsValue(stats_.get(), false, duration.elapsedInUSec());
+                    stats::Stats::addStatsValue(
+                        self->stats_.get(), false, duration.elapsedInUSec());
                 }
                 return;
             }
@@ -379,17 +384,17 @@ void MetaClient::getResponse(Request req,
             if (resp.code == cpp2::ErrorCode::SUCCEEDED) {
                 // succeeded
                 pro.setValue(respGen(std::move(resp)));
-                stats::Stats::addStatsValue(stats_.get(), true, duration.elapsedInUSec());
+                stats::Stats::addStatsValue(self->stats_.get(), true, duration.elapsedInUSec());
 
                 return;
             } else if (resp.code == cpp2::ErrorCode::E_LEADER_CHANGED) {
                 HostAddr leader(resp.get_leader().get_ip(), resp.get_leader().get_port());
-                updateLeader(leader);
+                self->updateLeader(leader);
                 if (retry < retryLimit) {
                     evb->runAfterDelay([req = std::move(req), remoteFunc = std::move(remoteFunc),
                                         respGen = std::move(respGen), pro = std::move(pro),
-                                        toLeader, retry, retryLimit, this] () mutable {
-                        getResponse(std::move(req),
+                                        toLeader, retry, retryLimit, self] () mutable {
+                        self->getResponse(std::move(req),
                                     std::move(remoteFunc),
                                     std::move(respGen),
                                     std::move(pro),
@@ -400,8 +405,8 @@ void MetaClient::getResponse(Request req,
                     return;
                 }
             }
-            pro.setValue(this->handleResponse(resp));
-            stats::Stats::addStatsValue(stats_.get(),
+            pro.setValue(self->handleResponse(resp));
+            stats::Stats::addStatsValue(self->stats_.get(),
                                         resp.code == cpp2::ErrorCode::SUCCEEDED,
                                         duration.elapsedInUSec());
         });  // then
@@ -581,8 +586,8 @@ folly::Future<StatusOr<std::vector<SpaceIdName>>> MetaClient::listSpaces() {
     auto future = promise.getFuture();
     getResponse(std::move(req), [] (auto client, auto request) {
                     return client->future_listSpaces(request);
-                }, [this] (cpp2::ListSpacesResp&& resp) -> decltype(auto) {
-                    return this->toSpaceIdName(resp.get_spaces());
+                }, [self = shared_from_this()] (cpp2::ListSpacesResp&& resp) -> decltype(auto) {
+                    return self->toSpaceIdName(resp.get_spaces());
                 }, std::move(promise));
     return future;
 }
@@ -650,10 +655,10 @@ MetaClient::getPartsAlloc(GraphSpaceID spaceId) {
     auto future = promise.getFuture();
     getResponse(std::move(req), [] (auto client, auto request) {
                     return client->future_getPartsAlloc(request);
-                }, [this] (cpp2::GetPartsAllocResp&& resp) -> decltype(auto) {
+                }, [self = shared_from_this()] (cpp2::GetPartsAllocResp&& resp) -> decltype(auto) {
                     std::unordered_map<PartitionID, std::vector<HostAddr>> parts;
                     for (auto it = resp.parts.begin(); it != resp.parts.end(); it++) {
-                        parts.emplace(it->first, to(it->second));
+                        parts.emplace(it->first, self->to(it->second));
                     }
                     return parts;
                 }, std::move(promise));
@@ -1412,19 +1417,19 @@ folly::Future<StatusOr<bool>> MetaClient::heartbeat() {
     VLOG(1) << "Send heartbeat to " << leader_ << ", clusterId " << req.get_cluster_id();
     getResponse(std::move(req), [] (auto client, auto request) {
                     return client->future_heartBeat(request);
-                }, [this] (cpp2::HBResp&& resp) -> bool {
-                    if (options_.inStoraged_ && options_.clusterId_.load() == 0) {
+                }, [self = shared_from_this()] (cpp2::HBResp&& resp) -> bool {
+                    if (self->options_.inStoraged_ && self->options_.clusterId_.load() == 0) {
                         LOG(INFO) << "Persisit the cluster Id from metad " << resp.get_cluster_id();
                         if (ClusterIdMan::persistInFile(resp.get_cluster_id(),
                                                         FLAGS_cluster_id_path)) {
-                            options_.clusterId_.store(resp.get_cluster_id());
+                            self->options_.clusterId_.store(resp.get_cluster_id());
                         } else {
                             LOG(FATAL) << "Can't persist the clusterId in file "
                                        << FLAGS_cluster_id_path;
                         }
                     }
-                    metadLastUpdateTime_ = resp.get_last_update_time_in_ms();
-                    VLOG(1) << "Metad last update time: " << metadLastUpdateTime_;
+                    self->metadLastUpdateTime_ = resp.get_last_update_time_in_ms();
+                    VLOG(1) << "Metad last update time: " << self->metadLastUpdateTime_;
                     return true;  // resp.code == cpp2::ErrorCode::SUCCEEDED
                 }, std::move(promise), true);
     return future;
@@ -1767,7 +1772,7 @@ ConfigItem MetaClient::toConfigItem(const cpp2::ConfigItem& item) {
 }
 
 Status MetaClient::refreshCache() {
-    auto ret = bgThread_->addTask(&MetaClient::loadData, this).get();
+    auto ret = bgThread_->addTask([self = shared_from_this()]() {return self->loadData();}).get();
     return ret ? Status::OK() : Status::Error("Load data failed");
 }
 

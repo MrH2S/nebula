@@ -53,7 +53,7 @@ private:
     std::unique_ptr<test::ServerContext>            metaServer_{nullptr};
     std::unique_ptr<test::ServerContext>            storageServer_{nullptr};
     std::unique_ptr<test::ServerContext>            graphServer_{nullptr};
-    std::unique_ptr<meta::MetaClient>               mClient_{nullptr};
+    std::shared_ptr<meta::MetaClient>               mClient_{nullptr};
     std::unique_ptr<meta::ClientBasedGflagsManager> gflagsManager_{nullptr};
 };
 
