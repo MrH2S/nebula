@@ -52,9 +52,10 @@ void TestEnv::SetUp() {
     options.localHost_ = localhost;
     options.clusterId_ = kClusterId;
     options.inStoraged_ = true;
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
     mClient_ = meta::MetaClient::make_shared(threadPool,
                                                   std::move(addrsRet.value()),
-                                                  options);
+                                                  bgWorker, options);
     mClient_->waitForMetadReady();
     gflagsManager_ = std::make_unique<meta::ClientBasedGflagsManager>(mClient_.get());
 

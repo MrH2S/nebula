@@ -95,8 +95,10 @@ bool StorageServer::start() {
     options.inStoraged_ = true;
     options.serviceName_ = "";
     options.skipConfig_ = FLAGS_local_config;
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
     metaClient_ = meta::MetaClient::make_shared(ioThreadPool_,
                                                      metaAddrs_,
+                                                     bgWorker,
                                                      options);
     if (!metaClient_->waitForMetadReady()) {
         LOG(ERROR) << "waitForMetadReady error!";

@@ -32,8 +32,10 @@ public:
                                                                         std::move(threadFactory));
         meta::MetaClientOptions options;
         options.skipConfig_ = true;
+        auto bgWorker = std::make_shared<thread::GenericWorker>();
         metaClient_ = meta::MetaClient::make_shared(ioExecutor,
                                                                  std::move(addrs.value()),
+                                                                 bgWorker,
                                                                  options);
 
         // load data try 3 time

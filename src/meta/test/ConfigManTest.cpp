@@ -275,8 +275,10 @@ TEST(ConfigManTest, MetaConfigManTest) {
     network::NetworkUtils::ipv4ToInt("127.0.0.1", localIp);
 
     auto module = cpp2::ConfigModule::STORAGE;
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
     auto client = MetaClient::make_shared(threadPool,
-        std::vector<HostAddr>{HostAddr(localIp, sc->port_)});
+        std::vector<HostAddr>{HostAddr(localIp, sc->port_)},
+        bgWorker);
     client->waitForMetadReady();
     client->gflagsModule_ = module;
 
@@ -473,8 +475,10 @@ TEST(ConfigManTest, MockConfigTest) {
     auto type = cpp2::ConfigType::STRING;
     auto mode = cpp2::ConfigMode::MUTABLE;
 
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
     auto client = MetaClient::make_shared(threadPool,
-        std::vector<HostAddr>{HostAddr(localIp, sc->port_)});
+        std::vector<HostAddr>{HostAddr(localIp, sc->port_)},
+        bgWorker);
     client->waitForMetadReady();
     client->gflagsModule_ = module;
     ClientBasedGflagsManager clientCfgMan(client.get());
@@ -487,8 +491,10 @@ TEST(ConfigManTest, MockConfigTest) {
     }
     clientCfgMan.registerGflags(configItems);
 
+    auto bgWorker2 = std::make_shared<thread::GenericWorker>();
     auto consoleClient = MetaClient::make_shared(threadPool,
-        std::vector<HostAddr>{HostAddr(localIp, sc->port_)});
+        std::vector<HostAddr>{HostAddr(localIp, sc->port_)},
+        bgWorker2);
     consoleClient->waitForMetadReady();
     ClientBasedGflagsManager console(consoleClient.get());
     // update in console
@@ -546,8 +552,10 @@ TEST(ConfigManTest, RocksdbOptionsTest) {
     options.clusterId_ = kClusterId;
     options.inStoraged_ = true;
     options.skipConfig_ = false;
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
     auto mClient = meta::MetaClient::make_shared(threadPool,
                                                       metaAddr,
+                                                      bgWorker,
                                                       options);
     mClient->waitForMetadReady();
     mClient->gflagsModule_ = module;

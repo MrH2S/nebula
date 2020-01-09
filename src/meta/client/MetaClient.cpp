@@ -29,9 +29,11 @@ namespace meta {
 
 MetaClient::MetaClient(std::shared_ptr<folly::IOThreadPoolExecutor> ioThreadPool,
                        std::vector<HostAddr> addrs,
+                       std::shared_ptr<thread::GenericWorker> bgWorker,
                        const MetaClientOptions& options)
     : ioThreadPool_(ioThreadPool)
     , addrs_(std::move(addrs))
+    , bgThread_(bgWorker)
     , options_(options) {
     CHECK(ioThreadPool_ != nullptr) << "IOThreadPool is required";
     CHECK(!addrs_.empty())
@@ -41,7 +43,6 @@ MetaClient::MetaClient(std::shared_ptr<folly::IOThreadPoolExecutor> ioThreadPool
     >();
     updateActive();
     updateLeader();
-    bgThread_ = std::make_unique<thread::GenericWorker>();
     LOG(INFO) << "Create meta client to " << active_;
     stats_ = std::make_unique<stats::Stats>(options_.serviceName_, "metaClient");
 }

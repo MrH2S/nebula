@@ -42,8 +42,10 @@ TEST(MetaClientTest, InterfacesTest) {
     network::NetworkUtils::ipv4ToInt("127.0.0.1", localIp);
     auto clientPort = network::NetworkUtils::getAvailablePort();
     HostAddr localHost{localIp, clientPort};
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
     auto client = MetaClient::make_shared(threadPool,
-                                               std::vector<HostAddr>{HostAddr(localIp, sc->port_)});
+                                               std::vector<HostAddr>{HostAddr(localIp, sc->port_)},
+                                               bgWorker);
     client->waitForMetadReady();
     {
         // Add hosts automatically, then testing listHosts interface.
@@ -340,7 +342,8 @@ TEST(MetaClientTest, TagTest) {
     IPv4 localIp;
     network::NetworkUtils::ipv4ToInt("127.0.0.1", localIp);
     auto localhosts = std::vector<HostAddr>{HostAddr(localIp, sc->port_)};
-    auto client = MetaClient::make_shared(threadPool, localhosts);
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
+    auto client = MetaClient::make_shared(threadPool, localhosts, bgWorker);
     std::vector<HostAddr> hosts = {{0, 0}, {1, 1}, {2, 2}, {3, 3}};
     client->waitForMetadReady();
     TestUtils::registerHB(sc->kvStore_.get(), hosts);
@@ -457,7 +460,8 @@ TEST(MetaClientTest, EdgeTest) {
     IPv4 localIp;
     network::NetworkUtils::ipv4ToInt("127.0.0.1", localIp);
     auto localhosts = std::vector<HostAddr>{HostAddr(localIp, sc->port_)};
-    auto client = MetaClient::make_shared(threadPool, localhosts);
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
+    auto client = MetaClient::make_shared(threadPool, localhosts, bgWorker);
     std::vector<HostAddr> hosts = {{0, 0}, {1, 1}, {2, 2}, {3, 3}};
     client->waitForMetadReady();
     TestUtils::registerHB(sc->kvStore_.get(), hosts);
@@ -581,7 +585,8 @@ TEST(MetaClientTest, TagIndexTest) {
     network::NetworkUtils::ipv4ToInt("127.0.0.1", localIp);
     auto localhosts = std::vector<HostAddr>{HostAddr(localIp, sc->port_)};
     std::vector<HostAddr> hosts = {{0, 0}, {1, 1}, {2, 2}, {3, 3}};
-    auto client = MetaClient::make_shared(threadPool, localhosts);
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
+    auto client = MetaClient::make_shared(threadPool, localhosts, bgWorker);
     client->waitForMetadReady();
     TestUtils::registerHB(sc->kvStore_.get(), hosts);
 
@@ -778,7 +783,8 @@ TEST(MetaClientTest, EdgeIndexTest) {
     IPv4 localIp;
     network::NetworkUtils::ipv4ToInt("127.0.0.1", localIp);
     auto localhosts = std::vector<HostAddr>{HostAddr(localIp, sc->port_)};
-    auto client = MetaClient::make_shared(threadPool, localhosts);
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
+    auto client = MetaClient::make_shared(threadPool, localhosts, bgWorker);
 
     client->waitForMetadReady();
     std::vector<HostAddr> hosts = {{0, 0}, {1, 1}, {2, 2}, {3, 3}};
@@ -1026,9 +1032,11 @@ TEST(MetaClientTest, DiffTest) {
     IPv4 localIp;
     network::NetworkUtils::ipv4ToInt("127.0.0.1", localIp);
     auto listener = std::make_unique<TestListener>();
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
     auto client = MetaClient::make_shared(threadPool,
                                                std::vector<HostAddr>{
-                                                    HostAddr(localIp, sc->port_)});
+                                                    HostAddr(localIp, sc->port_)},
+                                                    bgWorker);
     client->waitForMetadReady();
     client->registerListener(listener.get());
     {
@@ -1085,8 +1093,10 @@ TEST(MetaClientTest, HeartbeatTest) {
     options.localHost_ = localHost;
     options.clusterId_ = kClusterId;
     options.inStoraged_ = true;
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
     auto client = MetaClient::make_shared(threadPool,
                                                std::vector<HostAddr>{HostAddr(localIp, 10001)},
+                                               bgWorker,
                                                options);
     client->waitForMetadReady();
     client->registerListener(listener.get());
@@ -1153,6 +1163,9 @@ private:
     nebula::cpp2::HostAddr addr_;
 };
 
+auto threadPool0 = std::make_shared<folly::IOThreadPoolExecutor>(1);
+auto bgWorker0 = std::make_shared<thread::GenericWorker>();
+
 TEST(MetaClientTest, SimpleTest) {
     FLAGS_heartbeat_interval_secs = 3600;
     IPv4 localIp;
@@ -1162,12 +1175,12 @@ TEST(MetaClientTest, SimpleTest) {
     auto handler = std::make_shared<TestMetaService>();
     sc->mockCommon("meta", 0, handler);
 
-    auto threadPool = std::make_shared<folly::IOThreadPoolExecutor>(1);
     auto clientPort = network::NetworkUtils::getAvailablePort();
     HostAddr localHost{localIp, clientPort};
-    auto client = MetaClient::make_shared(threadPool,
+    auto client = MetaClient::make_shared(threadPool0,
                                                std::vector<HostAddr>{
-                                                   HostAddr(localIp, sc->port_)});
+                                                   HostAddr(localIp, sc->port_)},
+                                            bgWorker0);
     {
         LOG(INFO) << "Test heart beat...";
         folly::Baton<true, std::atomic> baton;
@@ -1179,16 +1192,19 @@ TEST(MetaClientTest, SimpleTest) {
     }
 }
 
+auto threadPool2 = std::make_shared<folly::IOThreadPoolExecutor>(1);
+auto bgWorker2 = std::make_shared<thread::GenericWorker>();
+
 TEST(MetaClientTest, RetryWithExceptionTest) {
     FLAGS_heartbeat_interval_secs = 3600;
     IPv4 localIp;
     network::NetworkUtils::ipv4ToInt("127.0.0.1", localIp);
 
-    auto threadPool = std::make_shared<folly::IOThreadPoolExecutor>(1);
     auto clientPort = network::NetworkUtils::getAvailablePort();
     HostAddr localHost{localIp, clientPort};
-    auto client = MetaClient::make_shared(threadPool,
-                                               std::vector<HostAddr>{HostAddr(0, 0)});
+    auto client = MetaClient::make_shared(threadPool2,
+                                               std::vector<HostAddr>{HostAddr(0, 0)},
+                                               bgWorker2);
     // Retry with exception, then failed
     {
         LOG(INFO) << "Test heart beat...";
@@ -1226,8 +1242,10 @@ TEST(MetaClientTest, RetryOnceTest) {
     auto threadPool = std::make_shared<folly::IOThreadPoolExecutor>(1);
     auto clientPort = network::NetworkUtils::getAvailablePort();
     HostAddr localHost{localIp, clientPort};
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
     auto client = MetaClient::make_shared(threadPool,
-                                               std::vector<HostAddr>{addrs[1]});
+                                               std::vector<HostAddr>{addrs[1]},
+                                               bgWorker);
     // First get leader changed and then succeeded
     {
         LOG(INFO) << "Test heart beat...";
@@ -1264,8 +1282,10 @@ TEST(MetaClientTest, RetryUntilLimitTest) {
     auto threadPool = std::make_shared<folly::IOThreadPoolExecutor>(1);
     auto clientPort = network::NetworkUtils::getAvailablePort();
     HostAddr localHost{localIp, clientPort};
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
     auto client = MetaClient::make_shared(threadPool,
-                                               std::vector<HostAddr>{addrs[1]});
+                                               std::vector<HostAddr>{addrs[1]},
+                                               bgWorker);
     // always get response of leader changed, then failed
     {
         LOG(INFO) << "Test heart beat...";
@@ -1292,8 +1312,10 @@ TEST(MetaClientTest, RocksdbOptionsTest) {
     auto type = cpp2::ConfigType::NESTED;
     auto mode = meta::cpp2::ConfigMode::MUTABLE;
 
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
     auto client = MetaClient::make_shared(threadPool,
-        std::vector<HostAddr>{HostAddr(localIp, sc->port_)});
+        std::vector<HostAddr>{HostAddr(localIp, sc->port_)},
+        bgWorker);
     client->waitForMetadReady();
     client->registerListener(listener.get());
     client->gflagsModule_ = module;

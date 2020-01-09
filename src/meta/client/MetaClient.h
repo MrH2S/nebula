@@ -143,8 +143,10 @@ public:
     static std::shared_ptr<MetaClient> make_shared(
         std::shared_ptr<folly::IOThreadPoolExecutor> ioThreadPool,
         std::vector<HostAddr> addrs,
+        std::shared_ptr<thread::GenericWorker> bgWorker,
         const MetaClientOptions& options = MetaClientOptions()) {
-            return std::shared_ptr<MetaClient>(new MetaClient(ioThreadPool, addrs, options));
+            return std::shared_ptr<MetaClient>(
+                new MetaClient(ioThreadPool, addrs, bgWorker, options));
         }
 
     virtual ~MetaClient();
@@ -477,6 +479,7 @@ protected:
 private:
     MetaClient(std::shared_ptr<folly::IOThreadPoolExecutor> ioThreadPool,
                std::vector<HostAddr> addrs,
+               std::shared_ptr<thread::GenericWorker> bgWorker,
                const MetaClientOptions& options = MetaClientOptions());
 
     std::shared_ptr<folly::IOThreadPoolExecutor> ioThreadPool_;
@@ -495,7 +498,7 @@ private:
     HostAddr leader_;
     HostAddr localHost_;
 
-    std::unique_ptr<thread::GenericWorker> bgThread_;
+    std::shared_ptr<thread::GenericWorker> bgThread_;
     SpaceNameIdMap        spaceIndexByName_;
     SpaceTagNameIdMap     spaceTagIndexByName_;
     SpaceEdgeNameTypeMap  spaceEdgeIndexByName_;

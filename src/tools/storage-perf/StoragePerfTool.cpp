@@ -77,7 +77,9 @@ public:
 
         meta::MetaClientOptions options;
         options.skipConfig_ = true;
-        mClient_ = meta::MetaClient::make_shared(threadPool_, metaAddrsRet.value(), options);
+        auto bgWorker = std::make_shared<thread::GenericWorker>();
+        mClient_ = meta::MetaClient::make_shared(
+            threadPool_, metaAddrsRet.value(), bgWorker, options);
         CHECK(mClient_->waitForMetadReady());
 
         auto spaceResult = mClient_->getSpaceIdByNameFromCache(FLAGS_space_name);

@@ -45,8 +45,10 @@ TEST(BalanceIntegrationTest, BalanceTest) {
     std::vector<HostAddr> metaAddr = {HostAddr(localIp, localMetaPort)};
 
     LOG(INFO) << "Create meta client...";
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
     auto mClient = meta::MetaClient::make_shared(threadPool,
-                                                      metaAddr);
+                                                      metaAddr,
+                                                      bgWorker);
 
     mClient->waitForMetadReady();
 
@@ -69,8 +71,10 @@ TEST(BalanceIntegrationTest, BalanceTest) {
         options.localHost_ = storageAddr;
         options.clusterId_ = kClusterId;
         options.inStoraged_ = true;
+        auto bgWorker2 = std::make_shared<thread::GenericWorker>();
         auto metaClient = meta::MetaClient::make_shared(threadPool,
                                                              metaAddr,
+                                                             bgWorker2,
                                                              options);
         metaClient->waitForMetadReady();
         metaClients.emplace_back(metaClient);
@@ -178,8 +182,10 @@ TEST(BalanceIntegrationTest, BalanceTest) {
         options.localHost_ = storageAddr;
         options.clusterId_ = kClusterId;
         options.inStoraged_ = true;
+        auto bgWorker2 = std::make_shared<thread::GenericWorker>();
         newMetaClient = meta::MetaClient::make_shared(threadPool,
                                                            metaAddr,
+                                                           bgWorker2,
                                                            options);
         newMetaClient->waitForMetadReady();
         std::string dataPath = folly::stringPrintf("%s/%d/data", rootPath.path(), replica + 1);
@@ -274,8 +280,9 @@ TEST(BalanceIntegrationTest, LeaderBalanceTest) {
     std::vector<HostAddr> metaAddr = {HostAddr(localIp, localMetaPort)};
 
     LOG(INFO) << "Create meta client...";
+    auto bgWorker = std::make_shared<thread::GenericWorker>();
     auto mClient = meta::MetaClient::make_shared(threadPool,
-                                                      metaAddr);
+                                                      metaAddr, bgWorker);
 
     mClient->waitForMetadReady();
 
@@ -297,8 +304,10 @@ TEST(BalanceIntegrationTest, LeaderBalanceTest) {
         options.localHost_ = storageAddr;
         options.clusterId_ = kClusterId;
         options.inStoraged_ = true;
+        auto bgWorker2 = std::make_shared<thread::GenericWorker>();
         auto metaClient = meta::MetaClient::make_shared(threadPool,
                                                              metaAddr,
+                                                             bgWorker2,
                                                              options);
         metaClient->waitForMetadReady();
         metaClients.emplace_back(metaClient);

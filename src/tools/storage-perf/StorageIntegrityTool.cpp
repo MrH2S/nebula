@@ -77,8 +77,10 @@ private:
 
         meta::MetaClientOptions options;
         options.skipConfig_ = true;
+        auto bgWorker = std::make_shared<thread::GenericWorker>();
         mClient_ = meta::MetaClient::make_shared(threadPool_,
                                                       metaAddrsRet.value(),
+                                                      bgWorker,
                                                       options);
         if (!mClient_->waitForMetadReady()) {
             LOG(ERROR) << "Init meta client failed";
