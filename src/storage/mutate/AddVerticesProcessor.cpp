@@ -33,6 +33,7 @@ void AddVerticesProcessor::process(const cpp2::AddVerticesRequest& req) {
 
     CHECK_NOTNULL(kvstore_);
     if (indexes_.empty()) {
+        LOG(ERROR) << "Debug Point: Insert Vertex without Index";
         std::for_each(partVertices.begin(), partVertices.end(), [&](auto& pv) {
             auto partId = pv.first;
             const auto& vertices = pv.second;
@@ -55,13 +56,15 @@ void AddVerticesProcessor::process(const cpp2::AddVerticesRequest& req) {
             doPut(spaceId_, partId, std::move(data));
         });
     } else {
+        LOG(ERROR) << "Debug Point: Insert Vertex with Index";
         std::for_each(partVertices.begin(), partVertices.end(), [&](auto &pv) {
             auto partId = pv.first;
-            const auto &vertices = pv.second;
-            auto atomic = [&]() -> std::string {
+            auto &vertices = pv.second;
+            auto atomic = [version, partId, vertices = std::move(vertices), this]() -> std::string {
                 return addVertices(version, partId, vertices);
             };
             auto callback = [partId, this](kvstore::ResultCode code) {
+                LOG(ERROR) << "Debug Point: ErrorCode " << code;
                 handleAsync(spaceId_, partId, code);
             };
             this->kvstore_->asyncAtomicOp(spaceId_, partId, atomic, callback);

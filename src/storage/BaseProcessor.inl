@@ -37,6 +37,7 @@ void BaseProcessor<RESP>::handleAsync(GraphSpaceID spaceId,
                                       PartitionID partId,
                                       kvstore::ResultCode code) {
     VLOG(3) << "partId:" << partId << ", code:" << static_cast<int32_t>(code);
+    LOG(ERROR) << "Debug Point: " << "partId:" << partId << ", code:" << static_cast<int32_t>(code);
 
     bool finished = false;
     {
@@ -125,7 +126,7 @@ BaseProcessor<RESP>::collectIndexValues(RowReader* reader,
     }
     return values;
 }
-    
+
 
 template <typename RESP>
 void BaseProcessor<RESP>::collectProps(RowReader* reader,
@@ -161,7 +162,7 @@ void BaseProcessor<RESP>::collectProps(RowReader* reader,
         }
     }
 }
-    
+
 
 }  // namespace storage
 }  // namespace nebula
