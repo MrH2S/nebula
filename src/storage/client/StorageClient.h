@@ -222,7 +222,8 @@ protected:
     folly::SemiFuture<StorageRpcResponse<Response>> collectResponse(
         folly::EventBase* evb,
         std::unordered_map<HostAddr, Request> requests,
-        RemoteFunc&& remoteFunc);
+        RemoteFunc&& remoteFunc,
+        std::uint8_t retryLimit = 3);
 
     template<class Request,
              class RemoteFunc,
@@ -234,7 +235,8 @@ protected:
     folly::Future<StatusOr<Response>> getResponse(
             folly::EventBase* evb,
             std::pair<HostAddr, Request> request,
-            RemoteFunc remoteFunc);
+            RemoteFunc remoteFunc,
+            std::uint8_t retryLimit = 3);
 
     // Cluster given ids into the host they belong to
     // The method returns a map
