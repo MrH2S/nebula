@@ -11,7 +11,7 @@
 namespace nebula {
 
 TEST(Cord, empty) {
-    Cord cord;
+    Cord<> cord;
     std::string a;
     std::string b;
     EXPECT_TRUE(cord.empty());
@@ -26,7 +26,7 @@ TEST(Cord, empty) {
 }
 
 TEST(Cord, write) {
-    Cord cord;
+    Cord<> cord;
 
     cord.write("cord", 4).write("-", 1).write("test", 4);
 
@@ -48,7 +48,7 @@ TEST(Cord, write) {
 
 
 TEST(Cord, multipleBlocks) {
-    Cord cord(128);
+    Cord<128> cord;
 
     std::string buf;
     for (int i = 0; i < 100; i++) {
@@ -64,7 +64,7 @@ TEST(Cord, multipleBlocks) {
 
 
 TEST(Cord, byteStream) {
-    Cord cord1;
+    Cord<> cord1;
 
     cord1 << static_cast<int8_t>('A')
           << static_cast<uint8_t>('b')
@@ -84,7 +84,7 @@ TEST(Cord, byteStream) {
     uint8_t bytes[] = {
         0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
         0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
-    Cord cord2;
+    Cord<> cord2;
 
     cord2.write(reinterpret_cast<const char*>(&bytes[0]), sizeof(bytes));
     std::string str = cord2.str();
@@ -98,7 +98,7 @@ TEST(Cord, byteStream) {
 
 
 TEST(Cord, integerStream) {
-    Cord cord;
+    Cord<> cord;
 
     cord << static_cast<int16_t>(16)
          << static_cast<uint16_t>(0x8080)
@@ -157,7 +157,7 @@ TEST(Cord, integerStream) {
 
 
 TEST(Cord, floatStream) {
-    Cord cord;
+    Cord<> cord;
 
     cord << static_cast<float>(1.234) << static_cast<double>(9.876);
 
@@ -185,7 +185,7 @@ TEST(Cord, stringStream) {
     char str2[] = "Beautiful";
     std::string str3("World");
 
-    Cord cord;
+    Cord<> cord;
 
     cord << str1 << str2;
     cord.write(str3.data(), str3.size());
@@ -197,8 +197,8 @@ TEST(Cord, stringStream) {
 
 
 TEST(Cord, cordStream) {
-    Cord c1;
-    Cord c2;
+    Cord<> c1;
+    Cord<> c2;
 
     std::string str1("Hello world!");
     std::string str2("Welcome to the future!");

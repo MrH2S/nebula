@@ -22,7 +22,7 @@ BENCHMARK(sstream_10k_string, iters) {
 }
 BENCHMARK_RELATIVE(cord_10k_string, iters) {
     for (auto i = 0u; i < iters; i++) {
-        Cord cord;
+        Cord<> cord;
         for (int j = 0; j < 1000; j++) {
             cord << "abcdefghij";
         }
@@ -45,7 +45,7 @@ BENCHMARK(sstream_1k_mix, iters) {
 }
 BENCHMARK_RELATIVE(cord_1k_mix, iters) {
     for (auto i = 0u; i < iters; i++) {
-        Cord cord;
+        Cord<> cord;
         for (int j = 0; j < 50; j++) {
             cord << "abcdefg"
                  << folly::to<std::string>(1234567890L)
@@ -57,6 +57,31 @@ BENCHMARK_RELATIVE(cord_1k_mix, iters) {
     }
 }
 
+BENCHMARK_DRAW_LINE();
+
+BENCHMARK(sstream_512_mix, iters) {
+    for (auto i = 0u; i < iters; i++) {
+        std::stringstream ss;
+        for (int j = 0; j < 25; j++) {
+            ss << "abcdefg" << 1234567890L << true << 1.23456789;
+        }
+        std::string str = ss.str();
+        folly::doNotOptimizeAway(&str);
+    }
+}
+BENCHMARK_RELATIVE(cord_512_mix, iters) {
+    for (auto i = 0u; i < iters; i++) {
+        Cord<> cord;
+        for (int j = 0; j < 25; j++) {
+            cord << "abcdefg"
+                 << folly::to<std::string>(1234567890L)
+                 << folly::to<std::string>(true)
+                 << folly::to<std::string>(1.23456789);
+        }
+        std::string str = cord.str();
+        folly::doNotOptimizeAway(&str);
+    }
+}
 
 int main(int argc, char** argv) {
     folly::init(&argc, &argv, true);
