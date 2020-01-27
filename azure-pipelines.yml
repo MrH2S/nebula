@@ -1,5 +1,11 @@
 # https://aka.ms/yaml
 
+ trigger:
+  paths:
+    exclude:
+      - 'docs/**'
+      - '**.md'
+
 variables:
   - group: CODECOV
 
