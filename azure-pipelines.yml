@@ -38,6 +38,4 @@ jobs:
       cd _build
       lcov --capture --gcov-tool $GCOV --directory . --output-file coverage.info
       bash <(curl -s https://codecov.io/bash) -Z -f coverage.info
-    env:
-      CODECOV_TOKEN: $(CODECOV_TOKEN)
     displayName: 'coverage'
